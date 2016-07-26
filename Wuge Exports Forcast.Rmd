@@ -1,0 +1,425 @@
+---
+title: "Chulwalar_WugeExports"
+author: "Marvin Scott"
+date: "July 25, 2016"
+output: 
+  html_document:
+    keep_md: true
+---
+
+###**Introduction** 
+Chulwalar is a an island located near the Pacific and is well known for producing unique flowers during the Winter Season. Overall there are around four types, IE ***Efak***, ***Wuge***, ***BlueEtel*** and ***RedEtel***, this document will focus on  the exports related the ***WUGE Flower*** and determine the best fit ***MODEL*** that predicts and forecast values beyond 2014. This analysis would help the government of Chulwalar compare their set plan/estimates for years ahead.
+
+###**Packages And Datasets Required**
+
+#####Below CSV files can be found under the ChulwalarCaseStudy/Data/ folder. Below steps to import datasets into R.
+
+**ImportedAsIsDataChulwalar** File includes the "AS IS" data.
+
+**ImportedPlanDataChulwalar** File includes the "Plan" data. 
+
+**ImportedIndicatorsChulwalar** File includes the "indicators" data that may possibly influence exports.
+
+```{r setup, include=TRUE}
+require(fpp)
+require(forecast)
+
+ImportedAsIsData <- read.csv(file.choose(), header = F, sep=";", fill = T)#select ImportedAsIsDataChulwalar.csv 
+ImportedPlanData <- read.csv(file.choose(), header = F, sep=";", fill = T)#select ImportedPlanDataChulwalar.csv 
+ImportedIndicators <- read.csv(file.choose(), header = F, sep=";", fill = T)#select ImportedIndicatorsChulwalar.csv 
+```
+
+###**Steps for Clean Data**
+**AS IS Dataset for Chulwalar**
+
+* Monthly Total Exports from 2008-2013. 
+* Monthly Total WUGE Exports from 2008-2013.
+* Yearly Total Exports from 2008-2013.
+* Monthly Total Exports from 2014. 
+```{r echo=TRUE}
+##Monthly "Total As is" from 2008-2013
+TotalAsIsVector <- c(ImportedAsIsData [2:13,2],ImportedAsIsData [2:13,3],ImportedAsIsData [2:13,4],ImportedAsIsData [2:13,5],ImportedAsIsData [2:13,6],ImportedAsIsData [2:13,7])
+##Monthly "WugeAsIs" from 2008-2013
+WugeAsIsVector <- c(ImportedAsIsData [30:41,2],ImportedAsIsData [30:41,3],ImportedAsIsData [30:41,4],ImportedAsIsData [30:41,5],ImportedAsIsData [30:41,6],ImportedAsIsData [30:41,7])
+## "YearAsIs" from 2008-2013
+YearAsIsVector <- c(ImportedAsIsData [86,2],ImportedAsIsData [86,3],ImportedAsIsData [86,4],ImportedAsIsData [86,5],ImportedAsIsData [86,6],ImportedAsIsData [86,7])
+##Monthly "Total As is" for 2014
+TotalAsIsVector_2014 <- c(ImportedAsIsData[2:13,8])
+
+##Convert "AS IS" data to TIME Series Format
+TotalAsIs<- ts(TotalAsIsVector , start=c(2008,1), end=c(2013,12), frequency=12)
+WugeAsIs <- ts(WugeAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+YearAsIs <- ts(YearAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+TotalAsIs_2014 <- ts(TotalAsIsVector_2014, start=c(2014,1), end=c(2014,12), frequency=12)
+```
+
+**Plan Dataset for Chulwalar**
+
+* Monthly Total Plan Exports from 2008-2013. 
+* Monthly Total Plan WUGE Exports from 2008-2013.
+* Yearly Total Plan Exports from 2008-2013.
+* Monthly Total Plan Exports from 2014. 
+```{r echo=TRUE}
+##Monthly "Total Plan" from 2008-2013
+PlanVector <- c(ImportedPlanData[2:13,2],ImportedPlanData[2:13,3],ImportedPlanData[2:13,4],ImportedPlanData[2:13,5],ImportedPlanData[2:13,6],ImportedPlanData[2:13,7])
+##Monthly "Wuge Plan" from 2008-2013
+WugePlanVector <- c(ImportedPlanData[30:41,2],ImportedPlanData[30:41,3],ImportedPlanData[30:41,4],ImportedPlanData[30:41,5],ImportedPlanData[30:41,6],ImportedPlanData[30:41,7])
+## "Year plan" from 2008-2013
+YearPlanVector <- c(ImportedPlanData[86,2],ImportedPlanData[86,3],ImportedPlanData[86,4],ImportedPlanData[86,5],ImportedPlanData[86,6],ImportedPlanData[86,7])
+##Monthly "Total Plan" for 2014
+PlanVector_2014 <- c(ImportedPlanData[2:13,8])
+
+##Convert "PLAN" data to TIME Series Format
+TotalPlan <- ts(PlanVector , start=c(2008,1), end=c(2013,12), frequency=12)
+WugePlan <- ts(WugePlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+YearPlan <- ts(YearPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+TotalPlan_2014 <- ts(PlanVector_2014, start=c(2014,1), end=c(2014,12), frequency=12)
+
+```
+
+**Indicator Dataset for Chulwalar**
+
+* Monthly Change in export prices from 2008-2013 (CEPI)
+* Monthly Satisfaction Index(gov) from 2008-2013
+* Monthly AverageTemperatures from 2008-2013
+* Monthly Births from 2008-2013
+* Monthly Satisfaction Index(independent) from 2008-2013 
+* Total Exports from Urbano Yearly from 2008-2013
+* Monthly GlobalisationPartyMembers from 2008-2013 
+* Monthly Average Export Price from 2008-2013
+* Monthly Etel Production price index 2008-2013
+* Monthly Chulwalar Index from 2008-2013
+* Monthly Inflation from 2008-2013
+* Spending for Chulwalar days Yearly from 2008-2013
+* Monthly Chulwalar days from 2008-2013
+* Monthly Influence of Chulwalar days from 2008-2013
+```{r echo=TRUE}
+
+CEPIVector <- c(ImportedIndicators[2:13,2],ImportedIndicators[2:13,3],ImportedIndicators[2:13,4],ImportedIndicators[2:13,5],ImportedIndicators[2:13,6],ImportedIndicators[2:13,7])
+##Convert "Indicator" data to TIME Series Format
+CEPI <- ts(CEPIVector , start=c(2008,1), end=c(2013,12), frequency=12)
+
+SIGovVector <- c(ImportedIndicators[16:27,2],ImportedIndicators[16:27,3],ImportedIndicators[16:27,4],ImportedIndicators[16:27,5],ImportedIndicators[16:27,6],ImportedIndicators[16:27,7])
+##Convert "Indicator" data to TIME Series Format
+SIGov <- ts(SIGovVector , start=c(2008,1), end=c(2013,12), frequency=12)
+
+
+TemperatureVector <- c(ImportedIndicators[30:41,2],ImportedIndicators[30:41,3],ImportedIndicators[30:41,4],ImportedIndicators[30:41,5],ImportedIndicators[30:41,6],ImportedIndicators[30:41,7])
+##Convert "Indicator" data to TIME Series Format
+Temperature <- ts(TemperatureVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+BirthsVector <- c(ImportedIndicators[44:55,2],ImportedIndicators[44:55,3],ImportedIndicators[44:55,4],ImportedIndicators[44:55,5],ImportedIndicators[44:55,6],ImportedIndicators[44:55,7])
+Births <- ts(BirthsVector, start=c(2008,1), end=c(2013,12), frequency=12) ##Convert "Indicator" data to TIME Series Format
+
+SIExternVector <- c(ImportedIndicators[58:69,2],ImportedIndicators[58:69,3],ImportedIndicators[58:69,4],ImportedIndicators[58:69,5],ImportedIndicators[58:69,6],ImportedIndicators[58:69,7])
+SIExtern <- ts(SIExternVector, start=c(2008,1), end=c(2013,12), frequency=12)##Convert "Indicator" data to TIME Series Format
+
+UrbanoExportsVector <- c(ImportedIndicators[72:83,2],ImportedIndicators[72:83,3],ImportedIndicators[72:83,4],ImportedIndicators[72:83,5],ImportedIndicators[72:83,6],ImportedIndicators[72:83,7])
+UrbanoExports <- ts(UrbanoExportsVector, start=c(2008,1), end=c(2013,12), frequency=12)##Convert "Indicator" data to TIME Series Format
+
+GlobalisationPartyMembersVector <- c(ImportedIndicators[86:97,2],ImportedIndicators[86:97,3],ImportedIndicators[86:97,4],ImportedIndicators[86:97,5],ImportedIndicators[86:97,6],ImportedIndicators[86:97,7])
+##Convert "Indicator" data to TIME Series Format
+GlobalisationPartyMembers <- ts(GlobalisationPartyMembersVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+AEPIVector <- c(ImportedIndicators[100:111,2],ImportedIndicators[100:111,3],ImportedIndicators[100:111,4],ImportedIndicators[100:111,5],ImportedIndicators[100:111,6],ImportedIndicators[100:111,7])
+AEPI <- ts(AEPIVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+PPIEtelVector <- c(ImportedIndicators[114:125,2],ImportedIndicators[114:125,3],ImportedIndicators[114:125,4],ImportedIndicators[114:125,5],ImportedIndicators[114:125,6],ImportedIndicators[114:125,7])
+PPIEtel <- ts(PPIEtelVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+ChulwalarIndexVector <- c(ImportedIndicators[128:139,2],ImportedIndicators[128:139,3],ImportedIndicators[128:139,4],ImportedIndicators[128:139,5],ImportedIndicators[128:139,6],ImportedIndicators[128:139,7])
+ChulwalarIndex <- ts(ChulwalarIndexVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+InflationVector <- c(ImportedIndicators[142:153,2],ImportedIndicators[142:153,3],ImportedIndicators[142:153,4],ImportedIndicators[142:153,5],ImportedIndicators[142:153,6],ImportedIndicators[142:153,7])
+Inflation <- ts(InflationVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+IndependenceDayPresentsVector <- c(ImportedIndicators[156:167,2],ImportedIndicators[156:167,3],ImportedIndicators[156:167,4],ImportedIndicators[156:167,5],ImportedIndicators[156:167,6],ImportedIndicators[156:167,7])
+IndependenceDayPresents <- ts(IndependenceDayPresentsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+NationalHolidaysVector <- c(ImportedIndicators[170:181,2],ImportedIndicators[170:181,3],ImportedIndicators[170:181,4],ImportedIndicators[170:181,5],ImportedIndicators[170:181,6],ImportedIndicators[170:181,7])
+NationalHolidays <- ts(NationalHolidaysVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+InfluenceNationalHolidaysVector <- c(ImportedIndicators[184:195,2],ImportedIndicators[184:195,3],ImportedIndicators[184:195,4],ImportedIndicators[184:195,5],ImportedIndicators[184:195,6],ImportedIndicators[184:195,7])
+InfluenceNationalHolidays <- ts(InfluenceNationalHolidaysVector, start=c(2008,1), end=c(2013,12), frequency=12)
+```
+
+###**Analysis**
+
+#####**Correlation Analysis to evaluate relationship between AS IS Exports from 2008-2013 and Plan Exports**
+
+* AS IS Monthly Totals from 2008-2013 and "PLAN" Monthly Totals from 2008-2013
+* AS IS WUGE Monthly Totals from 2008-2013 and "PLAN" WUGE Monthly Totals from 2008-2013
+* AS IS Year End Totals from 2008-2013 and "PLAN" Year End Totals from 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, TotalPlan) ,cor(WugeAsIs, WugePlan),cor(YearAsIs, YearPlan))
+```
+
+#####**Correlation Analysis to evaluate relationship between AS IS Exports from 2008-2013 and Indicator factors**
+
+* Monthly Change in export prices from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Change in export prices from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Change in export prices from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, CEPI) ,cor(WugeAsIs, CEPI),cor(YearAsIs, CEPI))
+```
+* Monthly Satisfaction Index(gov) from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Satisfaction Index(gov) from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Satisfaction Index(gov) from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, SIGov) ,cor(WugeAsIs, SIGov),cor(YearAsIs, SIGov))
+```
+* Monthly AverageTemperatures from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly AverageTemperatures from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly AverageTemperatures from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, Temperature),cor(WugeAsIs, Temperature),cor(YearAsIs, Temperature))
+```
+* Monthly Births from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Births from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Births from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, Births),cor(WugeAsIs, Births),cor(YearAsIs, Births))
+```
+* Monthly Satisfaction Index(independent) from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Satisfaction Index(independent) from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Satisfaction Index(independent) from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, SIExtern), cor(WugeAsIs, SIExtern),cor(YearAsIs, SIExtern))
+```
+* Total Exports from Urbano Yearly from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Total Exports from Urbano Yearly from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Total Exports from Urbano Yearly from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, UrbanoExports),cor(WugeAsIs, UrbanoExports),cor(YearAsIs, UrbanoExports))
+```
+* Monthly Monthly GlobalisationPartyMembers from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Monthly GlobalisationPartyMembers from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Monthly GlobalisationPartyMembers from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, GlobalisationPartyMembers),cor(WugeAsIs, GlobalisationPartyMembers),cor(YearAsIs, GlobalisationPartyMembers))
+```
+* Monthly Average Export Price from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Average Export Price from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Average Export Price from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, AEPI),cor(WugeAsIs, AEPI),cor(YearAsIs, AEPI))
+```
+* Monthly Etel Production price from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Etel Production price from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Etel Production price from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, PPIEtel), cor(WugeAsIs, PPIEtel),cor(YearAsIs, PPIEtel))
+```
+* Monthly Chulwalar Index from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Chulwalar Index from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Chulwalar Index from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, ChulwalarIndex),cor(WugeAsIs, ChulwalarIndex),cor(YearAsIs, ChulwalarIndex))
+```
+* Monthly Inflation from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Inflation from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Inflation from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, Inflation),cor(WugeAsIs, Inflation),cor(YearAsIs, Inflation))
+```
+* Spending for Chulwalar days Yearly from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Spending for Chulwalar days Yearly from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Spending for Chulwalar days Yearly from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, IndependenceDayPresents),cor(WugeAsIs, IndependenceDayPresents),cor(YearAsIs, IndependenceDayPresents))
+```
+* Monthly Chulwalar days from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Chulwalar days from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Chulwalar days from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, NationalHolidays),cor(WugeAsIs, NationalHolidays),cor(YearAsIs, NationalHolidays))
+```
+* Monthly Influence of Chulwalar days from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Monthly Influence of Chulwalar days from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Monthly Influence of Chulwalar days from 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+cbind(cor(TotalAsIs, InfluenceNationalHolidays),cor(WugeAsIs, InfluenceNationalHolidays),cor(YearAsIs, InfluenceNationalHolidays))
+```
+
+#####**Linear Regression Analysis between "AS IS" and "PLAN" datasets** 
+* Plan Monthly Total  from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Plan WUGE Monthly Total from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Plan Year End  Total 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+##Linear Model Fit
+TotalAsIs_lm <- lm(TotalAsIs ~ TotalPlan , data = TotalAsIs)
+summary(TotalAsIs_lm)
+##Linear Model Fit
+WugeAsIs_lm <- lm(WugeAsIs ~ WugePlan , data = WugeAsIs)
+summary(WugeAsIs_lm)
+##Linear Model Fit
+YearAsIs_lm <- lm(YearAsIs ~ YearPlan , data = YearAsIs)
+summary(YearAsIs_lm)
+```
+#####**Linear Regression Analysis with Season and Trend included between "AS IS" and "PLAN" datasets** 
+* Plan Monthly Total  from 2008-2013 and AS IS Monthly Total  from 2008-2013
+* Plan WUGE Monthly Total from 2008-2013 and AS IS WUGE Monthly Total from 2008-2013
+* Plan Year End  Total 2008-2013 and AS IS Year End  Total 2008-2013
+```{r echo=TRUE}
+##Linear Model Fit including trend and seasonality components. 
+TotalAsIs_tslm <- tslm(TotalAsIs ~ TotalPlan )
+summary(TotalAsIs_tslm)
+##Linear Model Fit including trend and seasonality components. 
+WugeAsIs_lm <- lm(WugeAsIs ~ WugePlan , data = WugeAsIs)
+summary(WugeAsIs_lm)
+##Linear Model Fit including trend and seasonality components. 
+YearAsIs_lm <- lm(YearAsIs ~ YearPlan , data = YearAsIs)
+summary(YearAsIs_lm)
+```
+
+#####**Time Series Analysis** for "AS IS" datasets
+STL function used to separate the data, seasonality, trend and remainder and determines the variation of each component
+```{r echo=TRUE}
+TotalAsIs_stl <- stl(TotalAsIs, s.window=5)
+WugeAsIs_stl <- stl(WugeAsIs, s.window=5)
+YearAsIs_stl <- stl(YearAsIs, s.window=5)
+```
+
+#####**Plot Analysis** 
+* AS IS and PLAN Plot Diagrams
+* Plot AS IS WUGE Monthly 2008-2013
+```{r echo=TRUE}
+
+par(mfrow=c(3,2))
+##Plot "AS IS" datasets
+plot(TotalAsIs, col="black", main="TotalAsIs")
+plot(WugeAsIs, col="blue", main="WugeAsIs")
+plot(YearAsIs, col="red", main="YearAsIs")
+##Plot "PLAN" datasets
+plot(TotalPlan , col="black", main="TotalPlan")
+plot(WugePlan, col="blue", main="WugePlan")
+plot(YearPlan, col="red", main="YearPlan")
+```
+* STL Plots for AS IS WUGE Monthly 2008-2013
+* STL Plots for AS IS Totals Monthly 2008-2013  
+* STL Plots for AS IS  Year End 2008-2013
+```{r echo=TRUE}
+par(mfrow=c(3,2))
+plot(TotalAsIs_stl, col="black", main="TotalAsIs")
+plot(WugeAsIs_stl, col="black", main="WugeAsIs")
+plot(YearAsIs_stl, col="red", main="YearAsIs")
+```
+* Trend Plots for AS IS WUGE Monthly 2008-2013
+* Trend Plots for AS IS Totals Monthly 2008-2013  
+* Trend Plots for AS IS  Year End 2008-2013
+```{r echo=TRUE}
+par(mfrow=c(3,2))
+plot(TotalAsIs_stl$time.series[,"trend"], col="black")
+plot(WugeAsIs_stl$time.series[,"trend"], col="blue")
+plot(YearAsIs_stl$time.series[,"trend"], col="red")
+```
+* Monthly Seasonal Plots for AS IS WUGE Monthly 2008-2013
+* Monthly Seasonal Plots for AS IS Totals Monthly 2008-2013  
+* Monthly Seasonal Plots for AS IS  Year End 2008-2013
+```{r echo=TRUE}
+monthplot(TotalAsIs_stl$time.series[,"seasonal"], main="TotalAsIs", ylab="Seasonal")
+monthplot(WugeAsIs_stl$time.series[,"seasonal"], main="WugeAsIs", ylab="Seasonal")
+monthplot(YearAsIs_stl$time.series[,"seasonal"], main="YearAsIs", ylab="Seasonal")
+```
+
+###**Exploring Forcast Models**
+
+###### **Simple expontential smoothing.** 
+```{r echo=TRUE}
+##2014 Monthly Forcast values
+Model_ses <- ses(TotalAsIs, h=12)
+summary(Model_ses)
+plot(Model_ses)
+```
+
+#### **HOLT'S Method.**
+
+###### **Holt's linear Method** 
+```{r echo=TRUE}
+##2014 Monthly Forcast values
+Model_holt_1 <- holt(TotalAsIs,h=12)
+summary(Model_holt_1)
+plot(Model_holt_1)
+```
+
+###### **Holt's exponential Method.**
+
+```{r}
+##2014 Monthly Forcast values
+Model_holt_2<- holt(TotalAsIs, exponential=TRUE,h=12)
+summary(Model_holt_2)
+plot(Model_holt_2)
+```
+
+###### **Holt's Damped Linear Method.**
+
+```{r echo=TRUE}
+##2014 Monthly Forcast values
+Model_holt_3 <- holt(TotalAsIs, damped=TRUE,h=12)
+summary(Model_holt_3)
+plot(Model_holt_3)
+```
+
+###### **Holt's Damped Exponential Method.**
+
+```{r echo=TRUE}
+##2014 Monthly Forcast values
+Model_holt_4 <- holt(TotalAsIs, exponential=TRUE, damped=TRUE,h=12)
+summary(Model_holt_4)
+plot(Model_holt_4)
+```
+
+###### **Model Comparison Holt's Linear, Holt's Exponential, Holt's Damped Linear, Holt's Damped Exponential and Simple expontential smoothing.**
+
+```{r echo=TRUE}
+plot.new()
+par(mfrow=c(1,1))
+plot(Model_holt_1, plot.conf=FALSE, ylab="Exports Chulwalar  )", xlab="Year", main="", fcol="white", type="o")
+lines(fitted(Model_ses), col="purple", type="o")
+lines(fitted(Model_holt_1), col="blue", type="o")
+lines(fitted(Model_holt_2), col="red", type="o")
+lines(fitted(Model_holt_3), col="green", type="o")
+lines(fitted(Model_holt_4), col="orange", type="o")
+lines(Model_ses$mean, col="purple", type="o")
+lines(Model_holt_1$mean, col="blue", type="o")
+lines(Model_holt_2$mean, col="red", type="o")
+lines(Model_holt_3$mean, col="green", type="o")
+lines(Model_holt_4$mean, col="orange", type="o")
+legend("topleft",lty=1, col=c(1,"purple","blue","red","green","orange"), c("data", "SES","Holts auto", "Exponential", "Additive Damped", "Multiplicative Damped"),pch=1)
+
+```
+
+#### **HOLT'S-WINTER'S SEASONAL Method**
+
+###### **Holt's Winter Seasonal Additive Method.** 
+```{r echo=TRUE }
+##2014 Monthly Forcast values
+Model_hw_1 <- hw(TotalAsIs ,seasonal="additive",h=12)
+summary(Model_hw_1)
+plot(Model_hw_1)
+```
+
+###### **Holt's Winter Seasonal Multiplicative Method** 
+
+```{r echo=TRUE}
+##2014 Monthly Forcast values
+Model_hw_2 <- hw(TotalAsIs ,seasonal="multiplicative",h=12)
+summary(Model_hw_2)
+plot(Model_hw_2)
+```
+
+###### **Model Comparison between Holt's Winter Seasonal Additive vs Multiplicative**
+
+```{r echo=TRUE}
+plot.new()
+par(mfrow=c(1,1))
+plot(Model_hw_1, ylab="Exports Chulwalar  ", plot.conf=FALSE, type="o", fcol="white", xlab="Year")
+lines(fitted(Model_hw_1), col="red", lty=2)
+lines(fitted(Model_hw_2), col="green", lty=2)
+lines(Model_hw_1$mean, type="o", col="red")
+lines(Model_hw_2$mean, type="o", col="green")
+legend("topleft",lty=1, pch=1, col=1:3, c("data","Holt Winters' Additive","Holt Winters' Multiplicative"))
+```
+
+ 
+ 
